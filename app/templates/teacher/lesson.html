@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ student.name }} · {{ ctx.title }}{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<p><a href="/teacher" class="muted">{{ t('teacher.dashboard_link') }}</a></p>
+<h1>{{ student.name }} — {{ ctx.title }}</h1>
+
+{% if analysis %}
+<section class="panel">
+  <h2>{{ t('teacher.before_after') }}</h2>
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>{{ t('teacher.topic') }}</th><th>{{ t('teacher.before') }}</th><th>{{ t('teacher.after') }}</th></tr></thead>
+    <tbody>
+      {% for topic, before in pre.items() %}
+      <tr>
+        <td>{{ topic }}</td>
+        <td><span class="badge" style="background:{{ LEVEL_COLORS[before] }}">{{ LEVEL_LABELS[before] }}</span></td>
+        <td>
+          {% set after = post.get(topic) %}
+          {% if after %}<span class="badge" style="background:{{ LEVEL_COLORS[after] }}">{{ LEVEL_LABELS[after] }}</span>
+          {% else %}<span class="muted">{{ t('common.none') }}</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>{{ t('teacher.progress') }}</h2>
+  {% if assessment %}<p>{{ t('teacher.col_score') }}: <strong>{{ assessment.score }}</strong> / 100</p>{% endif %}
+  <p><strong>{{ t('teacher.improved') }}:</strong> {{ improvement.improved|join(", ") or t('common.none') }}</p>
+  <p><strong>{{ t('teacher.still_weak') }}:</strong> {{ improvement.still_weak|join(", ") or t('common.none') }}</p>
+</section>
+
+{% if timeline|length > 1 %}
+<section class="panel">
+  <h2>{{ t('lesson.step5') }}</h2>
+  <div class="timeline-wrap"><canvas id="timeline"></canvas></div>
+  <script id="timeline-data" type="application/json">
+  {"points": {{ timeline|tojson }}, "label": {{ t('timeline.mastery')|tojson }}}
+  </script>
+</section>
+{% endif %}
+{% else %}
+<p class="muted empty">{{ t('teacher.not_analyzed') }}</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if timeline|length > 1 %}<script src="/static/timeline.js"></script>{% endif %}
+{% endblock %}

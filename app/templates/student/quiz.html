@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ t('lesson.step4') }} · {{ t('app.name') }}{% endblock %}
+{% block content %}
+<p><a href="/student/lessons/{{ assessment.context_id }}" class="muted">{{ t('quiz.back') }}</a></p>
+<h1>{{ t('lesson.step4') }}</h1>
+
+{% if assessment.completed_at %}
+  <div class="score-banner">{{ t('quiz.score') }}: <strong>{{ assessment.score }}</strong> / 100</div>
+  {% for q in assessment.questions %}
+  <section class="panel">
+    <p class="q-meta"><span class="tag">{{ t('quiz.mcq_label') if q.qtype == QUESTION_MCQ else t('quiz.open_label') }}</span> {{ q.topic_name }}</p>
+    <p class="q">{{ q.text }}</p>
+    {% if q.qtype == QUESTION_MCQ %}
+      <ul class="options review">
+        {% for opt in q.options %}
+        <li class="{{ 'correct' if loop.index0 == q.correct_index }} {{ 'chosen' if q.answer and loop.index0 == q.answer.selected_index }}">
+          {{ opt }}
+          {% if loop.index0 == q.correct_index %}<span class="mark">✓</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="answer">{{ q.answer.text or t('common.none') }}</p>
+    {% endif %}
+    <p>
+      <span class="badge" style="background:{{ LEVEL_COLORS[q.answer.resulting_level] }}">
+        {{ LEVEL_LABELS[q.answer.resulting_level] }} · {{ q.answer.score }}
+      </span>
+    </p>
+    {% if q.answer.feedback %}<p class="feedback">{{ q.answer.feedback }}</p>{% endif %}
+  </section>
+  {% endfor %}
+{% else %}
+  <form method="post" action="/student/quiz/{{ assessment.id }}/submit" enctype="multipart/form-data">
+    {% for q in assessment.questions %}
+    <section class="panel">
+      <p class="q-meta"><span class="tag">{{ t('quiz.mcq_label') if q.qtype == QUESTION_MCQ else t('quiz.open_label') }}</span>
+        {{ t('quiz.targets') }}: {{ q.topic_name }} ({{ LEVEL_LABELS[q.target_level] }})</p>
+      <p class="q">{{ q.text }}</p>
+
+      {% if q.qtype == QUESTION_MCQ %}
+        <ul class="options">
+          {% for opt in q.options %}
+          <li>
+            <label><input type="radio" name="choice_{{ q.id }}" value="{{ loop.index0 }}" /> {{ opt }}</label>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="answer-modes" data-qid="{{ q.id }}">
+          <div class="tabs sm">
+            <button type="button" class="tab active" data-mode="typing">{{ t('lesson.tab_type') }}</button>
+            <button type="button" class="tab" data-mode="writing">{{ t('lesson.tab_write') }}</button>
+            <button type="button" class="tab" data-mode="speaking">{{ t('lesson.tab_speak') }}</button>
+          </div>
+          <input type="hidden" name="modality_{{ q.id }}" value="typing" class="modality-input" />
+          <textarea name="answer_{{ q.id }}" rows="3" placeholder="{{ t('quiz.answer_ph') }}" class="mode-input" data-mode="typing"></textarea>
+          <input type="file" name="file_{{ q.id }}" accept="image/*" class="mode-input hidden" data-mode="writing" />
+          <input type="file" name="file_{{ q.id }}" accept="audio/*" class="mode-input hidden" data-mode="speaking" disabled />
+        </div>
+      {% endif %}
+    </section>
+    {% endfor %}
+    <button class="btn-primary lg" type="submit">{{ t('quiz.submit') }}</button>
+  </form>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/quiz.js"></script>
+{% endblock %}

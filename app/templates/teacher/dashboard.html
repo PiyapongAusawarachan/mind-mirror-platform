@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ t('teacher.dashboard') }} · {{ t('app.name') }}{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<h1>{{ t('teacher.dashboard') }}</h1>
+
+<form class="inline-form panel" method="post" action="/teacher/courses">
+  <input type="text" name="name" placeholder="{{ t('teacher.new_course_ph') }}" required />
+  <button class="btn-primary" type="submit">{{ t('teacher.new_course') }}</button>
+</form>
+
+{% if overall_topics %}
+<section class="panel">
+  <h2>{{ t('teacher.by_topic') }}</h2>
+  <div class="pie-grid" id="overall-pies"></div>
+</section>
+{% endif %}
+
+{% if course_timeline|length > 1 %}
+<section class="panel">
+  <h2>{{ t('lesson.step5') }}</h2>
+  <div class="timeline-wrap"><canvas id="course-timeline"></canvas></div>
+  <script id="course-timeline-data" type="application/json">
+  {"points": {{ course_timeline|tojson }}, "label": {{ t('timeline.mastery')|tojson }}}
+  </script>
+</section>
+{% endif %}
+
+{% for block in course_blocks %}
+<section class="panel">
+  <h2>{{ block.course.name }} <span class="muted">#{{ block.course.id }}</span></h2>
+  <p class="muted">{{ block.students|length }} {{ t('teacher.students') }} · {{ t('teacher.share_hint') }}</p>
+
+  {% if block.rows %}
+  <div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>{{ t('teacher.col_student') }}</th><th>{{ t('teacher.col_lesson') }}</th>
+        <th>{{ t('teacher.col_before') }}</th><th>{{ t('teacher.col_score') }}</th>
+        <th>{{ t('teacher.col_improved') }}</th><th>{{ t('teacher.col_weak') }}</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in block.rows %}
+      <tr>
+        <td>{{ r.student.name }}</td>
+        <td>{{ r.context.title }}</td>
+        <td>
+          <span class="pill" style="background:{{ LEVEL_COLORS['understood'] }}">{{ r.distribution['understood'] }}</span>
+          <span class="pill" style="background:{{ LEVEL_COLORS['confused'] }}">{{ r.distribution['confused'] }}</span>
+          <span class="pill" style="background:{{ LEVEL_COLORS['not_understood'] }}">{{ r.distribution['not_understood'] }}</span>
+        </td>
+        <td>{% if r.score is not none %}{{ r.score }}{% else %}<span class="muted">{{ t('common.none') }}</span>{% endif %}</td>
+        <td>{{ r.improvement.improved|length }}</td>
+        <td>{{ r.improvement.still_weak|length }}</td>
+        <td><a href="/teacher/lessons/{{ r.context.id }}">{{ t('teacher.view') }}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="muted">{{ t('teacher.no_activity') }}</p>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% if not course_blocks %}
+<p class="muted empty">{{ t('teacher.no_course') }}</p>
+{% endif %}
+
+<script id="pie-data" type="application/json">
+{"topics": {{ overall_topics|tojson }}, "colors": {{ LEVEL_COLORS|tojson }}, "labels": {{ LEVEL_LABELS|tojson }}}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/teacher_charts.js"></script>
+{% if course_timeline|length > 1 %}<script src="/static/timeline.js"></script>{% endif %}
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ t('student.my_lessons') }} · {{ t('app.name') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ t('student.my_lessons') }}</h1>
+</div>
+
+<form class="inline-form panel" method="post" action="/student/lessons">
+  <input type="text" name="title" placeholder="{{ t('student.new_lesson_ph') }}" required />
+  <button class="btn-primary" type="submit">{{ t('student.new_lesson') }}</button>
+</form>
+
+{% if contexts %}
+<div class="lesson-grid">
+  {% for ctx in contexts %}
+  <a class="lesson-card" href="/student/lessons/{{ ctx.id }}">
+    <h3>{{ ctx.title }}</h3>
+    <p class="muted">{{ ctx.materials|length }} {{ t('student.materials') }} · {{ ctx.explanations|length }} {{ t('student.explanations') }}</p>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted empty">{{ t('student.no_lessons') }}</p>
+{% endif %}
+{% endblock %}

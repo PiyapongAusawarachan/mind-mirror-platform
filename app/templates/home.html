@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="hero-glow"></div>
+  <h1>{{ t('home.title') }}</h1>
+  <p>{{ t('home.subtitle') }}</p>
+  <div class="cta">
+    <a class="btn-primary lg" href="/register">{{ t('home.get_started') }}</a>
+    <a class="btn-ghost lg" href="/login">{{ t('nav.login') }}</a>
+  </div>
+</section>
+
+<section class="cards">
+  <div class="feature">
+    <div class="feature-num">1</div>
+    <h3>{{ t('home.step1.title') }}</h3>
+    <p>{{ t('home.step1.body') }}</p>
+  </div>
+  <div class="feature">
+    <div class="feature-num">2</div>
+    <h3>{{ t('home.step2.title') }}</h3>
+    <p>{{ t('home.step2.body') }}</p>
+  </div>
+  <div class="feature">
+    <div class="feature-num">3</div>
+    <h3>{{ t('home.step3.title') }}</h3>
+    <p>{{ t('home.step3.body') }}</p>
+  </div>
+  <div class="feature">
+    <div class="feature-num">4</div>
+    <h3>{{ t('home.step4.title') }}</h3>
+    <p>{{ t('home.step4.body') }}</p>
+  </div>
+</section>
+{% endblock %}

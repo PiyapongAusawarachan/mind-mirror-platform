@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{{ t('app.name') }}{% endblock %}</title>
+  <meta name="description" content="{{ t('app.tagline') }}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <span class="brand-mark">◐</span> {{ t('app.name') }}
+    </a>
+    <nav class="nav">
+      <div class="lang-switch">
+        {% for code, label in LANGUAGES.items() %}
+        <a href="/lang/{{ code }}" class="lang {{ 'active' if code == lang }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+      {% if user %}
+        <span class="who">{{ user.name }} · {{ t('role.' + user.role) }}</span>
+        <a class="btn-ghost" href="/logout">{{ t('nav.logout') }}</a>
+      {% else %}
+        <a class="btn-ghost" href="/login">{{ t('nav.login') }}</a>
+        <a class="btn-primary sm" href="/register">{{ t('nav.register') }}</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  {% if not AI_ENABLED %}
+  <div class="banner">{{ t('demo.banner') }}</div>
+  {% endif %}
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">{{ t('footer') }} · {{ now_year if now_year else 2026 }}</footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
