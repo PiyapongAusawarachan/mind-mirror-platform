@@ -24,6 +24,8 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(20))  # "student" | "teacher"
     course_id: Mapped[int | None] = mapped_column(ForeignKey("courses.id"), nullable=True)
+    personality: Mapped[str] = mapped_column(String(20), default="logical")
+    theme: Mapped[str] = mapped_column(String(20), default="indigo")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
     course: Mapped["Course | None"] = relationship(

@@ -38,6 +38,7 @@ from app.database import init_db
 from app.models import User
 from app.routers import auth as auth_router
 from app.routers import common as common_router
+from app.routers import settings as settings_router
 from app.routers import student as student_router
 from app.routers import teacher as teacher_router
 from app.templating import render
@@ -82,6 +83,7 @@ def _startup() -> None:
 
 app.include_router(common_router.router)
 app.include_router(auth_router.router)
+app.include_router(settings_router.router)
 app.include_router(student_router.router)
 app.include_router(teacher_router.router)
 

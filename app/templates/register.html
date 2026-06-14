@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ t('auth.register') }} · {{ t('app.name') }}{% endblock %}
 {% block content %}
-<div class="auth-card">
+<div class="auth-card wide">
   <h1>{{ t('auth.register') }}</h1>
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
   <form method="post" action="/register">
@@ -22,7 +22,42 @@
         </select>
       </label>
     </div>
-    <button class="btn-primary block" type="submit">{{ t('auth.register') }}</button>
+
+    <fieldset class="choice-block">
+      <legend>{{ t('persona.question') }}</legend>
+      <p class="muted sm">{{ t('persona.hint') }}</p>
+      <div class="choice-grid">
+        {% for pid, p in personalities.items() %}
+        <label class="choice">
+          <input type="radio" name="personality" value="{{ pid }}" {{ 'checked' if loop.first }} />
+          <span class="choice-card">
+            <span class="choice-emoji">{{ p.emoji }}</span>
+            <span class="choice-label">{{ t('persona.' + pid) }}</span>
+            <span class="choice-desc">{{ t('persona.' + pid + '.desc') }}</span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <fieldset class="choice-block">
+      <legend>{{ t('cartoon.question') }}</legend>
+      <p class="muted sm">{{ t('cartoon.hint') }}</p>
+      <div class="choice-grid compact">
+        <label class="choice">
+          <input type="radio" name="cartoon" value="" checked />
+          <span class="choice-card sm"><span class="choice-emoji">🎯</span><span class="choice-label">{{ t('cartoon.none') }}</span></span>
+        </label>
+        {% for cid, emoji in cartoon_themes.items() %}
+        <label class="choice">
+          <input type="radio" name="cartoon" value="{{ cid }}" />
+          <span class="choice-card sm"><span class="choice-emoji">{{ emoji }}</span><span class="choice-label">{{ t('cartoon.' + cid) }}</span></span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <button class="btn-primary block lg" type="submit">{{ t('auth.register') }}</button>
   </form>
   <p class="muted">{{ t('auth.have_account') }} <a href="/login">{{ t('auth.login') }}</a></p>
 </div>

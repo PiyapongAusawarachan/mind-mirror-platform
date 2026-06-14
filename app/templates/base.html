@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ lang }}">
+<html lang="{{ lang }}" data-theme="{{ theme }}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,6 +17,7 @@
   <header class="topbar">
     <a class="brand" href="/">
       <img class="brand-logo" src="/static/img/logo.png" alt="{{ t('app.name') }}" /> {{ t('app.name') }}
+      <span class="theme-accent" aria-hidden="true">{{ theme_emoji }}</span>
     </a>
     <nav class="nav">
       <div class="lang-switch">
@@ -25,6 +26,7 @@
         {% endfor %}
       </div>
       {% if user %}
+        <a class="btn-ghost sm" href="/settings">{{ t('nav.settings') }}</a>
         <span class="who">{{ user.name }} · {{ t('role.' + user.role) }}</span>
         <a class="btn-ghost" href="/logout">{{ t('nav.logout') }}</a>
       {% else %}
@@ -38,7 +40,7 @@
   <div class="banner">{{ t('demo.banner') }}</div>
   {% endif %}
 
-  <main class="container">
+  <main class="container page-enter">
     {% block content %}{% endblock %}
   </main>
 

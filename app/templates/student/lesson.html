@@ -1,85 +1,100 @@
 {% extends "base.html" %}
 {% block title %}{{ ctx.title }} · {{ t('app.name') }}{% endblock %}
 {% block head %}
+{% if step == 'map' and analysis %}
 <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endif %}
+{% if step == 'progress' %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endif %}
 {% endblock %}
 {% block content %}
 <p><a href="/student" class="muted">{{ t('student.all_lessons') }}</a></p>
 <h1>{{ ctx.title }}</h1>
 
-<div class="grid-2">
-  <section class="panel" id="summary">
-    <h2>{{ t('lesson.step1') }}</h2>
-    <form method="post" action="/student/lessons/{{ ctx.id }}/materials" enctype="multipart/form-data">
-      <input type="file" name="files" multiple accept=".pdf,image/*" />
-      <button class="btn-primary" type="submit">{{ t('lesson.upload') }}</button>
-    </form>
-    {% if ctx.materials %}
-    <ul class="chips">
-      {% for m in ctx.materials %}<li class="chip">{{ m.filename }} <span class="muted">({{ m.kind }})</span></li>{% endfor %}
-    </ul>
-    {% else %}<p class="muted">{{ t('lesson.no_material') }}</p>{% endif %}
+<nav class="stepper">
+  {% for s in steps %}
+  <a class="step-link {{ 'active' if s.active }} {{ 'done' if s.done and not s.active }}" href="{{ s.url }}">
+    <span class="step-num">{{ '✓' if s.done and not s.active else s.num }}</span>
+    {{ t('step.' + s.id) }}
+  </a>
+  {% endfor %}
+</nav>
 
-    {% if ctx.source_text %}
-    <div class="summary-card">
-      <div class="row-between">
-        <h3>{{ t('lesson.ai_summary') }}</h3>
-        <form method="post" action="/student/lessons/{{ ctx.id }}/summarize">
-          <button class="btn-ghost sm" type="submit">{{ t('lesson.resummarize') if ctx.summary else t('lesson.summarize') }}</button>
-        </form>
-      </div>
-      {% if ctx.summary %}
-        <p>{{ ctx.summary }}</p>
-        {% if ctx.summary_points %}
-        <ul class="key-points">
-          {% for p in ctx.summary_points %}<li>{{ p }}</li>{% endfor %}
-        </ul>
-        {% endif %}
-      {% else %}
-        <p class="muted">{{ t('lesson.summary_hint') }}</p>
+{% if step == 'material' %}
+<section class="panel" id="summary">
+  <h2>{{ t('lesson.step1') }}</h2>
+  <form method="post" action="/student/lessons/{{ ctx.id }}/materials" enctype="multipart/form-data">
+    <input type="file" name="files" multiple accept=".pdf,image/*" />
+    <button class="btn-primary" type="submit">{{ t('lesson.upload') }}</button>
+  </form>
+  {% if ctx.materials %}
+  <ul class="chips">
+    {% for m in ctx.materials %}<li class="chip">{{ m.filename }} <span class="muted">({{ m.kind }})</span></li>{% endfor %}
+  </ul>
+  {% else %}<p class="muted">{{ t('lesson.no_material') }}</p>{% endif %}
+
+  {% if ctx.source_text %}
+  <div class="summary-card">
+    <div class="row-between">
+      <h3>{{ t('lesson.ai_summary') }}</h3>
+      <form method="post" action="/student/lessons/{{ ctx.id }}/summarize">
+        <button class="btn-ghost sm" type="submit">{{ t('lesson.resummarize') if ctx.summary else t('lesson.summarize') }}</button>
+      </form>
+    </div>
+    {% if ctx.summary %}
+      <p>{{ ctx.summary }}</p>
+      {% if ctx.summary_points %}
+      <ul class="key-points">
+        {% for p in ctx.summary_points %}<li>{{ p }}</li>{% endfor %}
+      </ul>
       {% endif %}
-    </div>
+    {% else %}
+      <p class="muted">{{ t('lesson.summary_hint') }}</p>
     {% endif %}
-  </section>
+  </div>
+  {% endif %}
+</section>
 
-  <section class="panel">
-    <h2>{{ t('lesson.step2') }}</h2>
-    <div class="tabs">
-      <button class="tab active" data-tab="type">{{ t('lesson.tab_type') }}</button>
-      <button class="tab" data-tab="write">{{ t('lesson.tab_write') }}</button>
-      <button class="tab" data-tab="speak">{{ t('lesson.tab_speak') }}</button>
-    </div>
+{% elif step == 'explain' %}
+<section class="panel">
+  <h2>{{ t('lesson.step2') }}</h2>
+  <div class="tabs">
+    <button class="tab active" data-tab="type">{{ t('lesson.tab_type') }}</button>
+    <button class="tab" data-tab="write">{{ t('lesson.tab_write') }}</button>
+    <button class="tab" data-tab="speak">{{ t('lesson.tab_speak') }}</button>
+  </div>
 
-    <form class="tab-panel" data-panel="type" method="post" action="/student/lessons/{{ ctx.id }}/explain">
-      <input type="hidden" name="modality" value="typing" />
-      <textarea name="text" rows="5" placeholder="{{ t('lesson.type_ph') }}" required></textarea>
-      <button class="btn-primary" type="submit">{{ t('lesson.add_explanation') }}</button>
-    </form>
+  <form class="tab-panel" data-panel="type" method="post" action="/student/lessons/{{ ctx.id }}/explain">
+    <input type="hidden" name="modality" value="typing" />
+    <textarea name="text" rows="5" placeholder="{{ t('lesson.type_ph') }}" required></textarea>
+    <button class="btn-primary" type="submit">{{ t('lesson.add_explanation') }}</button>
+  </form>
 
-    <form class="tab-panel hidden" data-panel="write" method="post" action="/student/lessons/{{ ctx.id }}/explain" enctype="multipart/form-data">
-      <input type="hidden" name="modality" value="writing" />
-      <input type="file" name="file" accept="image/*" required />
-      <button class="btn-primary" type="submit">{{ t('lesson.upload_writing') }}</button>
-    </form>
+  <form class="tab-panel hidden" data-panel="write" method="post" action="/student/lessons/{{ ctx.id }}/explain" enctype="multipart/form-data">
+    <input type="hidden" name="modality" value="writing" />
+    <input type="file" name="file" accept="image/*" required />
+    <button class="btn-primary" type="submit">{{ t('lesson.upload_writing') }}</button>
+  </form>
 
-    <form class="tab-panel hidden" data-panel="speak" method="post" action="/student/lessons/{{ ctx.id }}/explain" enctype="multipart/form-data">
-      <input type="hidden" name="modality" value="speaking" />
-      <input type="file" name="file" accept="audio/*" required />
-      <button class="btn-primary" type="submit">{{ t('lesson.upload_audio') }}</button>
-    </form>
+  <form class="tab-panel hidden" data-panel="speak" method="post" action="/student/lessons/{{ ctx.id }}/explain" enctype="multipart/form-data">
+    <input type="hidden" name="modality" value="speaking" />
+    <input type="file" name="file" accept="audio/*" required />
+    <button class="btn-primary" type="submit">{{ t('lesson.upload_audio') }}</button>
+  </form>
 
-    {% if ctx.explanations %}
-    <details class="muted-box">
-      <summary>{{ ctx.explanations|length }} {{ t('lesson.saved_explanations') }}</summary>
-      {% for e in ctx.explanations %}
-        <p><span class="badge">{{ e.modality }}</span> {{ e.text[:300] }}</p>
-      {% endfor %}
-    </details>
-    {% endif %}
-  </section>
-</div>
+  {% if ctx.explanations %}
+  <details class="muted-box" open>
+    <summary>{{ ctx.explanations|length }} {{ t('lesson.saved_explanations') }}</summary>
+    {% for e in ctx.explanations %}
+      <p><span class="badge">{{ e.modality }}</span> {{ e.text[:300] }}</p>
+    {% endfor %}
+  </details>
+  {% endif %}
+</section>
 
+{% elif step == 'map' %}
 <section class="panel" id="map">
   <div class="row-between">
     <h2>{{ t('lesson.step3') }}</h2>
@@ -126,6 +141,7 @@
   {% endif %}
 </section>
 
+{% elif step == 'quiz' %}
 <section class="panel">
   <div class="row-between">
     <h2>{{ t('lesson.step4') }}</h2>
@@ -149,20 +165,30 @@
   {% endif %}
 </section>
 
-{% if timeline|length > 1 %}
+{% elif step == 'progress' %}
 <section class="panel">
   <h2>{{ t('lesson.step5') }}</h2>
   <p class="muted">{{ t('lesson.timeline_hint') }}</p>
+  {% if timeline|length > 1 %}
   <div class="timeline-wrap"><canvas id="timeline"></canvas></div>
   <script id="timeline-data" type="application/json">
   {"points": {{ timeline|tojson }}, "label": {{ t('timeline.mastery')|tojson }}}
   </script>
+  {% else %}
+  <p class="muted empty">{{ t('lesson.progress_empty') }}</p>
+  {% endif %}
 </section>
 {% endif %}
+
+<div class="wizard-nav">
+  {% if prev_url %}<a class="btn-ghost" href="{{ prev_url }}">← {{ t('wizard.prev') }}</a>{% else %}<span></span>{% endif %}
+  <span class="spacer"></span>
+  {% if next_url %}<a class="btn-primary" href="{{ next_url }}">{{ t('wizard.next') }} →</a>{% endif %}
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="/static/app.js"></script>
-{% if analysis %}<script src="/static/knowledge_map.js"></script>{% endif %}
-{% if timeline|length > 1 %}<script src="/static/timeline.js"></script>{% endif %}
+{% if step == 'map' and analysis %}<script src="/static/knowledge_map.js"></script>{% endif %}
+{% if step == 'progress' and timeline|length > 1 %}<script src="/static/timeline.js"></script>{% endif %}
 {% endblock %}

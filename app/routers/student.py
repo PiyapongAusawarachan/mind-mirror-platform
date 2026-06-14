@@ -73,15 +73,54 @@ def create_lesson(
     return RedirectResponse(f"/student/lessons/{ctx.id}", status_code=303)
 
 
+# The lesson flow as a one-step-per-page wizard.
+WIZARD_STEPS = ["material", "explain", "map", "quiz", "progress"]
+
+
+def _step_status(ctx: LearningContext, analysis, timeline) -> dict[str, bool]:
+    return {
+        "material": bool((ctx.source_text or "").strip()),
+        "explain": bool(ctx.explanations),
+        "map": analysis is not None,
+        "quiz": bool(ctx.assessments),
+        "progress": len(timeline) > 1,
+    }
+
+
 @router.get("/lessons/{context_id}")
 def lesson_detail(
     context_id: int,
-    request: Request,
     student: User = Depends(require_student),
     db: Session = Depends(get_db),
 ):
     ctx = _get_owned_context(db, context_id, student)
+    return RedirectResponse(f"/student/lessons/{ctx.id}/step/material", status_code=303)
+
+
+@router.get("/lessons/{context_id}/step/{step}")
+def lesson_step(
+    context_id: int,
+    step: str,
+    request: Request,
+    student: User = Depends(require_student),
+    db: Session = Depends(get_db),
+):
+    if step not in WIZARD_STEPS:
+        step = "material"
+    ctx = _get_owned_context(db, context_id, student)
     analysis = analytics.latest_analysis(ctx)
+    timeline = analytics.timeline(ctx)
+    done = _step_status(ctx, analysis, timeline)
+
+    index = WIZARD_STEPS.index(step)
+    base = f"/student/lessons/{ctx.id}/step"
+    steps = [
+        {"id": s, "num": i + 1, "active": s == step, "done": done[s], "url": f"{base}/{s}"}
+        for i, s in enumerate(WIZARD_STEPS)
+    ]
+    prev_url = f"{base}/{WIZARD_STEPS[index - 1]}" if index > 0 else None
+    next_url = f"{base}/{WIZARD_STEPS[index + 1]}" if index < len(WIZARD_STEPS) - 1 else None
+
     return render(
         request,
         "student/lesson.html",
@@ -90,7 +129,11 @@ def lesson_detail(
             "ctx": ctx,
             "analysis": analysis,
             "distribution": analytics.context_distribution(ctx),
-            "timeline": analytics.timeline(ctx),
+            "timeline": timeline,
+            "step": step,
+            "steps": steps,
+            "prev_url": prev_url,
+            "next_url": next_url,
         },
     )
 
@@ -127,7 +170,7 @@ def upload_materials(
         ctx.source_text = (ctx.source_text + "\n\n" + "\n\n".join(added_text)).strip()
         _refresh_summary(ctx)
     db.commit()
-    return RedirectResponse(f"/student/lessons/{ctx.id}", status_code=303)
+    return RedirectResponse(f"/student/lessons/{ctx.id}/step/material", status_code=303)
 
 
 def _refresh_summary(ctx: LearningContext) -> None:
@@ -148,7 +191,7 @@ def summarize_lesson(
     if ctx.source_text.strip():
         _refresh_summary(ctx)
         db.commit()
-    return RedirectResponse(f"/student/lessons/{ctx.id}#summary", status_code=303)
+    return RedirectResponse(f"/student/lessons/{ctx.id}/step/material#summary", status_code=303)
 
 
 @router.post("/lessons/{context_id}/explain")
@@ -170,7 +213,7 @@ def add_explanation(
     if content:
         db.add(Explanation(context_id=ctx.id, modality=modality, text=content))
         db.commit()
-    return RedirectResponse(f"/student/lessons/{ctx.id}", status_code=303)
+    return RedirectResponse(f"/student/lessons/{ctx.id}/step/explain", status_code=303)
 
 
 @router.post("/lessons/{context_id}/analyze")
@@ -181,7 +224,7 @@ def run_analysis(
 ):
     ctx = _get_owned_context(db, context_id, student)
     if not ctx.explanations:
-        return RedirectResponse(f"/student/lessons/{ctx.id}", status_code=303)
+        return RedirectResponse(f"/student/lessons/{ctx.id}/step/explain", status_code=303)
 
     explanation_text = "\n\n".join(e.text for e in ctx.explanations)
     source = ctx.source_text or "(No source material uploaded.)"
@@ -199,7 +242,7 @@ def run_analysis(
         db.add(TopicEdge(analysis_id=analysis.id, source=e["source"], target=e["target"], relation=e["relation"]))
     analytics.record_snapshot(db, ctx, "analysis", dist)
     db.commit()
-    return RedirectResponse(f"/student/lessons/{ctx.id}#map", status_code=303)
+    return RedirectResponse(f"/student/lessons/{ctx.id}/step/map", status_code=303)
 
 
 @router.post("/lessons/{context_id}/quiz")
@@ -211,7 +254,7 @@ def create_quiz(
     ctx = _get_owned_context(db, context_id, student)
     analysis = analytics.latest_analysis(ctx)
     if analysis is None:
-        return RedirectResponse(f"/student/lessons/{ctx.id}", status_code=303)
+        return RedirectResponse(f"/student/lessons/{ctx.id}/step/map", status_code=303)
 
     weak = [
         {"name": t.name, "level": t.level}
@@ -220,7 +263,7 @@ def create_quiz(
     ]
     questions = assess.generate_questions(ctx.source_text, weak)
     if not questions:
-        return RedirectResponse(f"/student/lessons/{ctx.id}", status_code=303)
+        return RedirectResponse(f"/student/lessons/{ctx.id}/step/map", status_code=303)
 
     assessment = Assessment(context_id=ctx.id)
     db.add(assessment)

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ t('settings.title') }} · {{ t('app.name') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ t('settings.title') }}</h1>
+</div>
+{% if saved %}<p class="notice ok">{{ t('settings.saved') }}</p>{% endif %}
+
+<form method="post" action="/settings" class="panel">
+  <fieldset class="choice-block">
+    <legend>{{ t('persona.question') }}</legend>
+    <p class="muted sm">{{ t('persona.hint') }}</p>
+    <div class="choice-grid">
+      {% for pid, p in personalities.items() %}
+      <label class="choice">
+        <input type="radio" name="personality" value="{{ pid }}" {{ 'checked' if pid == current_personality }} />
+        <span class="choice-card">
+          <span class="choice-emoji">{{ p.emoji }}</span>
+          <span class="choice-label">{{ t('persona.' + pid) }}</span>
+          <span class="choice-desc">{{ t('persona.' + pid + '.desc') }}</span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  <fieldset class="choice-block">
+    <legend>{{ t('cartoon.question') }}</legend>
+    <p class="muted sm">{{ t('cartoon.hint') }}</p>
+    <div class="choice-grid compact">
+      <label class="choice">
+        <input type="radio" name="cartoon" value="" {{ 'checked' if not current_cartoon }} />
+        <span class="choice-card sm"><span class="choice-emoji">🎯</span><span class="choice-label">{{ t('cartoon.none') }}</span></span>
+      </label>
+      {% for cid, emoji in cartoon_themes.items() %}
+      <label class="choice">
+        <input type="radio" name="cartoon" value="{{ cid }}" {{ 'checked' if cid == current_cartoon }} />
+        <span class="choice-card sm"><span class="choice-emoji">{{ emoji }}</span><span class="choice-label">{{ t('cartoon.' + cid) }}</span></span>
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  <button class="btn-primary lg" type="submit">{{ t('settings.save') }}</button>
+</form>
+{% endblock %}

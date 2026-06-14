@@ -29,7 +29,8 @@ def test_full_student_journey(client):
     r = client.post(lesson_url + "/analyze", follow_redirects=False)
     assert r.status_code == 303
 
-    page = client.get(lesson_url)
+    # The wizard puts the knowledge map on its own step page.
+    page = client.get(lesson_url + "/step/map")
     assert page.status_code == 200
     assert "cy" in page.text  # knowledge map container rendered
 

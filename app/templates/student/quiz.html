@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ t('lesson.step4') }} · {{ t('app.name') }}{% endblock %}
 {% block content %}
-<p><a href="/student/lessons/{{ assessment.context_id }}" class="muted">{{ t('quiz.back') }}</a></p>
+<p><a href="/student/lessons/{{ assessment.context_id }}/step/quiz" class="muted">{{ t('quiz.back') }}</a></p>
 <h1>{{ t('lesson.step4') }}</h1>
 
 {% if assessment.completed_at %}

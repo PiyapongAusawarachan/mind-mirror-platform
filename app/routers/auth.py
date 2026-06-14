@@ -7,7 +7,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app import auth, i18n
+from app import auth, i18n, themes
 from app.database import get_db
 from app.models import Course, User
 from app.templating import current_lang, render
@@ -37,10 +37,20 @@ def login(
     return RedirectResponse("/", status_code=303)
 
 
+def _register_context(db: Session, **extra) -> dict:
+    ctx = {
+        "error": None,
+        "courses": db.scalars(select(Course)).all(),
+        "personalities": themes.PERSONALITIES,
+        "cartoon_themes": themes.CARTOON_THEMES,
+    }
+    ctx.update(extra)
+    return ctx
+
+
 @router.get("/register")
 def register_form(request: Request, db: Session = Depends(get_db)):
-    courses = db.scalars(select(Course)).all()
-    return render(request, "register.html", {"error": None, "courses": courses})
+    return render(request, "register.html", _register_context(db))
 
 
 @router.post("/register")
@@ -51,6 +61,8 @@ def register(
     password: str = Form(...),
     role: str = Form(...),
     course_id: str = Form(""),
+    personality: str = Form("logical"),
+    cartoon: str = Form(""),
     db: Session = Depends(get_db),
 ):
     email = email.strip().lower()
@@ -58,14 +70,16 @@ def register(
         role = "student"
 
     lang = current_lang(request)
-    courses = db.scalars(select(Course)).all()
 
     if len(password) < MIN_PASSWORD:
         return render(request, "register.html",
-                      {"error": i18n.translate(lang, "auth.password_short"), "courses": courses})
+                      _register_context(db, error=i18n.translate(lang, "auth.password_short")))
     if db.scalar(select(User).where(User.email == email)):
         return render(request, "register.html",
-                      {"error": i18n.translate(lang, "auth.email_taken"), "courses": courses})
+                      _register_context(db, error=i18n.translate(lang, "auth.email_taken")))
+
+    personality = themes.normalize_personality(personality)
+    theme = themes.resolve_theme(personality, cartoon)
 
     user = User(
         name=name.strip(),
@@ -73,6 +87,8 @@ def register(
         password_hash=auth.hash_password(password),
         role=role,
         course_id=int(course_id) if (role == "student" and course_id) else None,
+        personality=personality,
+        theme=theme,
     )
     db.add(user)
     db.commit()

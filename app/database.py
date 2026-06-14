@@ -40,6 +40,10 @@ _ADDED_COLUMNS = {
         "summary": "TEXT DEFAULT ''",
         "summary_points_json": "TEXT DEFAULT ''",
     },
+    "users": {
+        "personality": "VARCHAR(20) DEFAULT 'logical'",
+        "theme": "VARCHAR(20) DEFAULT 'indigo'",
+    },
 }
 
 
