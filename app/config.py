@@ -24,6 +24,17 @@ elif _raw_database_url.startswith("postgresql://"):
     DATABASE_URL = _raw_database_url.replace("postgresql://", "postgresql+psycopg://", 1)
 else:
     DATABASE_URL = _raw_database_url
+USING_SQLITE = DATABASE_URL.startswith("sqlite")
+REQUIRE_PERSISTENT_DB = os.getenv(
+    "REQUIRE_PERSISTENT_DB",
+    "true" if IS_PRODUCTION else "false",
+).lower() == "true"
+if IS_PRODUCTION and REQUIRE_PERSISTENT_DB and USING_SQLITE:
+    raise RuntimeError(
+        "Production is configured to require persistent storage, but DATABASE_URL "
+        "is missing or points to SQLite. Set DATABASE_URL to a managed Postgres "
+        "connection string before deploying."
+    )
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-insecure-change-me")
 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "*").split(",") if h.strip()]

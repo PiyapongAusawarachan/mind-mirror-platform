@@ -9,6 +9,7 @@ This project is ready to deploy as a public website on Render.
 3. Select the GitHub repository.
 4. Render will read `render.yaml` and create:
    - `mind-mirror-platform` web service on the free plan
+   - `mind-mirror-db` Postgres database for persistent accounts/lessons
 5. Add the required secret environment variable:
    - `GEMINI_API_KEY`
 6. Deploy.
@@ -29,11 +30,18 @@ AI_PROVIDER=gemini
 GEMINI_MODEL=gemini-2.5-flash
 DEFAULT_LANG=th
 SECURE_COOKIES=true
+REQUIRE_PERSISTENT_DB=true
+DATABASE_URL=<set automatically from mind-mirror-db>
 ```
 
-The free Render blueprint uses local SQLite. This is enough for demo/presentation
-and avoids requiring a payment card. For durable production data, add a managed
-Postgres database later and set `DATABASE_URL`.
+`DATABASE_URL` must point to managed Postgres in production. Without it, the app
+will refuse to start because SQLite inside a free Render web container is
+ephemeral: accounts, lessons, uploads metadata, and quiz history can disappear
+after redeploys/restarts.
+
+If you already deployed an older SQLite-based version, open the Render Blueprint
+and click **Sync** (or recreate the Blueprint) so Render creates `mind-mirror-db`
+and injects `DATABASE_URL` into the web service.
 
 ## Verify
 
@@ -62,6 +70,10 @@ Then test:
 
 - Do not commit `.env`.
 - Free hosting may cold-start, so the first request can be slow.
-- Uploaded files and SQLite data on a free web container may not be durable long-term.
-  This is enough for MVP/demo. For production, use managed Postgres plus object
-  storage for uploads.
+- Accounts and app records are durable through Render Postgres.
+- Uploaded file binaries still live on the web service filesystem. On a free
+  Render web container those files can be lost after redeploy/restart. The app
+  stores extracted text in Postgres, so normal learning history remains usable.
+  For full production file durability, add object storage later.
+- Free Render Postgres can expire according to Render's free-plan limits. Upgrade
+  the database before a real long-term launch.
