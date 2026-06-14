@@ -8,8 +8,7 @@ This project is ready to deploy as a public website on Render.
 2. Open Render and choose **New > Blueprint**.
 3. Select the GitHub repository.
 4. Render will read `render.yaml` and create:
-   - `mind-mirror-platform` web service
-   - `mind-mirror-db` Postgres database
+   - `mind-mirror-platform` web service on the free plan
 5. Add the required secret environment variable:
    - `GEMINI_API_KEY`
 6. Deploy.
@@ -32,7 +31,9 @@ DEFAULT_LANG=th
 SECURE_COOKIES=true
 ```
 
-`DATABASE_URL` is automatically linked to the Render Postgres database.
+The free Render blueprint uses local SQLite. This is enough for demo/presentation
+and avoids requiring a payment card. For durable production data, add a managed
+Postgres database later and set `DATABASE_URL`.
 
 ## Verify
 
@@ -61,4 +62,6 @@ Then test:
 
 - Do not commit `.env`.
 - Free hosting may cold-start, so the first request can be slow.
-- Uploaded files on a free web container may not be durable long-term. The app stores extracted text and results in Postgres, which is enough for MVP/demo.
+- Uploaded files and SQLite data on a free web container may not be durable long-term.
+  This is enough for MVP/demo. For production, use managed Postgres plus object
+  storage for uploads.
