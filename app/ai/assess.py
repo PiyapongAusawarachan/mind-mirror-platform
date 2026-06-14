@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import logging
+
 from app import config
 from app.ai import client
+
+logger = logging.getLogger("mindmirror.ai")
 
 _GEN_SYSTEM = (
     "You are MindMirror's assessment author. Given a lesson's source material and a list "
@@ -69,8 +73,9 @@ def generate_questions(source_text: str, weak_topics: list[dict]) -> list[dict]:
         user = f"SOURCE MATERIAL:\n{source_text[:5000]}\n\nWEAK SUBTOPICS:\n{listing}"
         try:
             data = client.chat_json(_GEN_SYSTEM, user)
-            items = data.get("items", [])
-        except Exception:  # pragma: no cover
+            items = data.get("items", []) or _mock_items(weak_topics)
+        except Exception as exc:  # pragma: no cover - resilient fallback
+            logger.warning("generate_questions fell back to mock: %s", exc)
             items = _mock_items(weak_topics)
 
     questions: list[dict] = []
@@ -136,8 +141,12 @@ def grade_answer(question: str, answer: str, source_text: str = "") -> dict:
     )
     try:
         data = client.chat_json(_GRADE_SYSTEM, user)
-    except Exception as exc:  # pragma: no cover
-        return {"score": 50.0, "feedback": f"[Grading error: {exc}]", "level": config.CONFUSED}
+    except Exception as exc:  # pragma: no cover - resilient fallback
+        logger.warning("grade_answer fell back to heuristic: %s", exc)
+        words = len(answer.split())
+        score = 80.0 if words >= 30 else 55.0 if words >= 10 else 30.0
+        level = config.UNDERSTOOD if score >= 75 else config.CONFUSED if score >= 40 else config.NOT_UNDERSTOOD
+        return {"score": score, "feedback": "ระบบให้คะแนนเบื้องต้นจากความครบถ้วนของคำตอบ", "level": level}
 
     score = float(data.get("score", 0) or 0)
     score = max(0.0, min(100.0, score))

@@ -12,7 +12,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app import analytics, config
-from app.ai import analyze, assess, ingest
+from app.ai import analyze, assess, ingest, summarize
 from app.auth import require_student
 from app.database import get_db
 from app.models import (
@@ -125,8 +125,30 @@ def upload_materials(
             added_text.append(f"# {file.filename}\n{text}")
     if added_text:
         ctx.source_text = (ctx.source_text + "\n\n" + "\n\n".join(added_text)).strip()
+        _refresh_summary(ctx)
     db.commit()
     return RedirectResponse(f"/student/lessons/{ctx.id}", status_code=303)
+
+
+def _refresh_summary(ctx: LearningContext) -> None:
+    """Generate (or regenerate) the AI summary of a lesson's material."""
+
+    result = summarize.summarize_material(ctx.source_text)
+    ctx.summary = result["summary"]
+    ctx.summary_points_json = json.dumps(result["key_points"], ensure_ascii=False)
+
+
+@router.post("/lessons/{context_id}/summarize")
+def summarize_lesson(
+    context_id: int,
+    student: User = Depends(require_student),
+    db: Session = Depends(get_db),
+):
+    ctx = _get_owned_context(db, context_id, student)
+    if ctx.source_text.strip():
+        _refresh_summary(ctx)
+        db.commit()
+    return RedirectResponse(f"/student/lessons/{ctx.id}#summary", status_code=303)
 
 
 @router.post("/lessons/{context_id}/explain")

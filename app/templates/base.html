@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}{{ t('app.name') }}{% endblock %}</title>
   <meta name="description" content="{{ t('app.tagline') }}" />
+  <link rel="icon" type="image/png" href="/static/img/logo.png" />
+  <link rel="apple-touch-icon" href="/static/img/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -14,7 +16,7 @@
 <body>
   <header class="topbar">
     <a class="brand" href="/">
-      <span class="brand-mark">◐</span> {{ t('app.name') }}
+      <img class="brand-logo" src="/static/img/logo.png" alt="{{ t('app.name') }}" /> {{ t('app.name') }}
     </a>
     <nav class="nav">
       <div class="lang-switch">

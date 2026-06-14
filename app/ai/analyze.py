@@ -10,10 +10,13 @@ Returns a plain dict so callers can persist it:
 
 from __future__ import annotations
 
+import logging
 import re
 
 from app import config
 from app.ai import client
+
+logger = logging.getLogger("mindmirror.ai")
 
 _SYSTEM = (
     "You are MindMirror, an expert tutor that compares a student's own-words "
@@ -37,9 +40,9 @@ def analyze_understanding(source_text: str, explanation: str) -> dict:
     )
     try:
         data = client.chat_json(_SYSTEM, user)
-    except Exception as exc:  # pragma: no cover
+    except Exception as exc:  # pragma: no cover - resilient fallback
+        logger.warning("analyze_understanding fell back to heuristic: %s", exc)
         data = _mock_analysis(source_text, explanation)
-        data["summary"] = f"[AI error, showing heuristic result: {exc}] " + data["summary"]
     return _normalize(data)
 
 

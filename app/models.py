@@ -57,9 +57,21 @@ class LearningContext(Base):
     student_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     title: Mapped[str] = mapped_column(String(200))
     source_text: Mapped[str] = mapped_column(Text, default="")  # extracted material text
+    summary: Mapped[str] = mapped_column(Text, default="")  # AI summary of the material
+    summary_points_json: Mapped[str] = mapped_column(Text, default="")  # JSON list[str] key points
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
     student: Mapped["User"] = relationship(back_populates="contexts")
+
+    @property
+    def summary_points(self) -> list[str]:
+        if not self.summary_points_json:
+            return []
+        try:
+            data = json.loads(self.summary_points_json)
+            return [str(p) for p in data] if isinstance(data, list) else []
+        except (ValueError, TypeError):
+            return []
     materials: Mapped[list["Material"]] = relationship(
         back_populates="context", cascade="all, delete-orphan"
     )

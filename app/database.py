@@ -30,3 +30,29 @@ def init_db() -> None:
     from app import models  # noqa: F401  (register mappers)
 
     Base.metadata.create_all(bind=engine)
+    _ensure_columns()
+
+
+# Columns added after the first release. We add them in-place so existing
+# databases keep working without a full migration tool.
+_ADDED_COLUMNS = {
+    "learning_contexts": {
+        "summary": "TEXT DEFAULT ''",
+        "summary_points_json": "TEXT DEFAULT ''",
+    },
+}
+
+
+def _ensure_columns() -> None:
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    with engine.begin() as conn:
+        for table, columns in _ADDED_COLUMNS.items():
+            if table not in existing_tables:
+                continue
+            present = {col["name"] for col in inspector.get_columns(table)}
+            for name, ddl in columns.items():
+                if name not in present:
+                    conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {name} {ddl}'))

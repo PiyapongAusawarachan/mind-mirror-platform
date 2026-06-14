@@ -8,11 +8,14 @@
 from __future__ import annotations
 
 import base64
+import logging
 import mimetypes
 from pathlib import Path
 
 from app import config
 from app.ai import client
+
+logger = logging.getLogger("mindmirror.ai")
 
 
 def extract_pdf_text(path: str) -> str:
@@ -44,8 +47,9 @@ def extract_image_text(path: str) -> str:
             model=client.vision_model(),
         )
         return str(result.get("text", "")).strip() or "[No text detected in image]"
-    except Exception as exc:  # pragma: no cover
-        return f"[Image OCR failed: {exc}]"
+    except Exception as exc:  # pragma: no cover - resilient fallback
+        logger.warning("image OCR failed: %s", exc)
+        return f"[ยังอ่านข้อความจากรูป '{Path(path).name}' ไม่ได้ ลองอัปโหลดใหม่อีกครั้ง]"
 
 
 def transcribe_audio(path: str) -> str:
@@ -53,5 +57,6 @@ def transcribe_audio(path: str) -> str:
         return f"[Mock transcript] Spoken explanation from '{Path(path).name}'."
     try:
         return client.transcribe(path).strip()
-    except Exception as exc:  # pragma: no cover
-        return f"[Audio transcription failed: {exc}]"
+    except Exception as exc:  # pragma: no cover - resilient fallback
+        logger.warning("audio transcription failed: %s", exc)
+        return f"[ยังถอดเสียงจากไฟล์ '{Path(path).name}' ไม่ได้ ลองอัปโหลดใหม่อีกครั้ง]"

@@ -9,7 +9,7 @@
 <h1>{{ ctx.title }}</h1>
 
 <div class="grid-2">
-  <section class="panel">
+  <section class="panel" id="summary">
     <h2>{{ t('lesson.step1') }}</h2>
     <form method="post" action="/student/lessons/{{ ctx.id }}/materials" enctype="multipart/form-data">
       <input type="file" name="files" multiple accept=".pdf,image/*" />
@@ -20,6 +20,27 @@
       {% for m in ctx.materials %}<li class="chip">{{ m.filename }} <span class="muted">({{ m.kind }})</span></li>{% endfor %}
     </ul>
     {% else %}<p class="muted">{{ t('lesson.no_material') }}</p>{% endif %}
+
+    {% if ctx.source_text %}
+    <div class="summary-card">
+      <div class="row-between">
+        <h3>{{ t('lesson.ai_summary') }}</h3>
+        <form method="post" action="/student/lessons/{{ ctx.id }}/summarize">
+          <button class="btn-ghost sm" type="submit">{{ t('lesson.resummarize') if ctx.summary else t('lesson.summarize') }}</button>
+        </form>
+      </div>
+      {% if ctx.summary %}
+        <p>{{ ctx.summary }}</p>
+        {% if ctx.summary_points %}
+        <ul class="key-points">
+          {% for p in ctx.summary_points %}<li>{{ p }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+      {% else %}
+        <p class="muted">{{ t('lesson.summary_hint') }}</p>
+      {% endif %}
+    </div>
+    {% endif %}
   </section>
 
   <section class="panel">

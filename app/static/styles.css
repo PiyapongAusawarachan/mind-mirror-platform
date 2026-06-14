@@ -35,6 +35,19 @@ h2 { font-size: 1.2rem; letter-spacing: -.01em; }
 .brand { font-weight: 700; font-size: 1.15rem; color: var(--ink); display: flex; align-items: center; gap: 8px; }
 .brand:hover { text-decoration: none; }
 .brand-mark { color: var(--brand); font-size: 1.3rem; }
+.brand-logo { height: 30px; width: 30px; object-fit: contain; display: block; }
+
+.summary-card {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--brand-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.summary-card h3 { margin: 0; font-size: 1rem; }
+.summary-card p { margin: 8px 0; }
+.key-points { margin: 8px 0 0; padding-left: 18px; }
+.key-points li { margin: 4px 0; }
 .nav { display: flex; align-items: center; gap: 14px; }
 .who { color: var(--muted); font-size: .88rem; }
 .lang-switch { display: flex; gap: 2px; background: var(--brand-soft); border-radius: 999px; padding: 3px; }
