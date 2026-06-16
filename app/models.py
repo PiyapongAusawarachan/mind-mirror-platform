@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -26,6 +26,7 @@ class User(Base):
     course_id: Mapped[int | None] = mapped_column(ForeignKey("courses.id"), nullable=True)
     personality: Mapped[str] = mapped_column(String(20), default="logical")
     theme: Mapped[str] = mapped_column(String(20), default="indigo")
+    plan: Mapped[str] = mapped_column(String(20), default="free")  # "free" | "pro"
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
     course: Mapped["Course | None"] = relationship(
@@ -34,6 +35,14 @@ class User(Base):
     contexts: Mapped[list["LearningContext"]] = relationship(
         back_populates="student", cascade="all, delete-orphan"
     )
+    enrollments: Mapped[list["Enrollment"]] = relationship(
+        back_populates="student", cascade="all, delete-orphan",
+        foreign_keys="Enrollment.student_id",
+    )
+
+    @property
+    def enrolled_courses(self) -> list["Course"]:
+        return [e.course for e in sorted(self.enrollments, key=lambda e: e.created_at)]
 
 
 class Course(Base):
@@ -48,6 +57,13 @@ class Course(Base):
     students: Mapped[list["User"]] = relationship(
         back_populates="course", foreign_keys="User.course_id"
     )
+    enrollments: Mapped[list["Enrollment"]] = relationship(
+        back_populates="course", cascade="all, delete-orphan"
+    )
+
+    @property
+    def enrolled_students(self) -> list["User"]:
+        return [e.student for e in self.enrollments]
 
 
 class LearningContext(Base):
@@ -57,6 +73,7 @@ class LearningContext(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    course_id: Mapped[int | None] = mapped_column(ForeignKey("courses.id"), nullable=True)
     title: Mapped[str] = mapped_column(String(200))
     source_text: Mapped[str] = mapped_column(Text, default="")  # extracted material text
     summary: Mapped[str] = mapped_column(Text, default="")  # AI summary of the material
@@ -64,6 +81,7 @@ class LearningContext(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
     student: Mapped["User"] = relationship(back_populates="contexts")
+    course: Mapped["Course | None"] = relationship(foreign_keys=[course_id])
 
     @property
     def summary_points(self) -> list[str]:
@@ -224,6 +242,21 @@ class Answer(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 
     question: Mapped["Question"] = relationship(back_populates="answer")
+
+
+class Enrollment(Base):
+    """A student joining a teacher's course (Google Classroom style)."""
+
+    __tablename__ = "enrollments"
+    __table_args__ = (UniqueConstraint("student_id", "course_id", name="uq_enrollment"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+
+    student: Mapped["User"] = relationship(back_populates="enrollments", foreign_keys=[student_id])
+    course: Mapped["Course"] = relationship(back_populates="enrollments")
 
 
 class MasterySnapshot(Base):

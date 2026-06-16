@@ -19,6 +19,7 @@ from app.models import (
     Answer,
     Assessment,
     Course,
+    Enrollment,
     Explanation,
     LearningContext,
     MasterySnapshot,
@@ -107,8 +108,10 @@ def main() -> None:
             student = User(name=name, email=email, password_hash=pw, role="student", course_id=course.id)
             db.add(student)
             db.flush()
+            db.add(Enrollment(student_id=student.id, course_id=course.id))
+            db.flush()
 
-            ctx = LearningContext(student_id=student.id, title="Functions", source_text=SOURCE)
+            ctx = LearningContext(student_id=student.id, title="Functions", source_text=SOURCE, course_id=course.id)
             db.add(ctx)
             db.flush()
             db.add(Explanation(context_id=ctx.id, modality="typing", text=expl))

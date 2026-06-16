@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ t('plan.pricing_title') }} · {{ t('app.name') }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ t('plan.pricing_title') }}</h1></div>
+<p class="muted">{{ t('plan.pricing_sub') }}</p>
+
+{% set notice = request.query_params.get('notice') %}
+{% if notice == 'upgraded' %}<p class="notice ok">{{ t('plan.upgraded') }}</p>{% endif %}
+{% if notice == 'downgraded' %}<p class="notice warn">{{ t('plan.downgraded') }}</p>{% endif %}
+
+<div class="pricing-grid">
+  <div class="pricing-card {{ 'current' if current_plan == 'free' }}">
+    <div class="pricing-emoji">{{ plan_info['free'].emoji }}</div>
+    <h2>{{ t('plan.free') }}</h2>
+    <div class="price">฿{{ plan_info['free'].price }}<span class="muted sm">/{{ t('plan.month') }}</span></div>
+    <ul class="plan-features">
+      {% for key in feature_keys %}
+      <li>{{ t('plan.feature.' + key) }}: <strong>{{ t('plan.value.unlimited') if limits['free'][key] is none else (t('plan.value.on') if limits['free'][key] is sameas true else (t('plan.value.off') if limits['free'][key] is sameas false else limits['free'][key])) }}</strong></li>
+      {% endfor %}
+    </ul>
+    {% if current_plan == 'free' %}
+    <span class="btn-ghost block disabled">{{ t('plan.current') }}</span>
+    {% else %}
+    <form method="post" action="/billing/downgrade"><button class="btn-ghost block" type="submit">{{ t('plan.switch_free') }}</button></form>
+    {% endif %}
+  </div>
+
+  <div class="pricing-card highlight {{ 'current' if current_plan == 'pro' }}">
+    <div class="pricing-ribbon">{{ t('plan.popular') }}</div>
+    <div class="pricing-emoji">{{ plan_info['pro'].emoji }}</div>
+    <h2>{{ t('plan.pro') }}</h2>
+    <div class="price">฿{{ plan_info['pro'].price }}<span class="muted sm">/{{ t('plan.month') }}</span></div>
+    <ul class="plan-features">
+      {% for key in feature_keys %}
+      <li>{{ t('plan.feature.' + key) }}: <strong>{{ t('plan.value.unlimited') if limits['pro'][key] is none else (t('plan.value.on') if limits['pro'][key] is sameas true else (t('plan.value.off') if limits['pro'][key] is sameas false else limits['pro'][key])) }}</strong></li>
+      {% endfor %}
+    </ul>
+    {% if current_plan == 'pro' %}
+    <span class="btn-primary block disabled">{{ t('plan.current') }}</span>
+    {% else %}
+    <a class="btn-primary block" href="/billing/checkout">{{ t('plan.upgrade_cta') }}</a>
+    {% endif %}
+  </div>
+</div>
+
+<p class="muted sm demo-note">{{ t('plan.demo_note') }}</p>
+{% endblock %}

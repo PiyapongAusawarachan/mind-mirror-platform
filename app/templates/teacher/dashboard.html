@@ -6,10 +6,21 @@
 {% block content %}
 <h1>{{ t('teacher.dashboard') }}</h1>
 
+{% if notice == 'limit' %}
+<p class="notice warn">{{ t('course.notice.limit') }} <a href="/pricing">{{ t('plan.upgrade_cta') }}</a></p>
+{% endif %}
+
+{% if can_create %}
 <form class="inline-form panel" method="post" action="/teacher/courses">
   <input type="text" name="name" placeholder="{{ t('teacher.new_course_ph') }}" required />
   <button class="btn-primary" type="submit">{{ t('teacher.new_course') }}</button>
 </form>
+{% else %}
+<div class="panel locked-row">
+  <span>🔒 {{ t('teacher.course_limit_reached') }}</span>
+  <a class="btn-primary sm" href="/pricing">{{ t('plan.upgrade_cta') }}</a>
+</div>
+{% endif %}
 
 {% if overall_topics %}
 <section class="panel">
@@ -30,8 +41,13 @@
 
 {% for block in course_blocks %}
 <section class="panel">
-  <h2>{{ block.course.name }} <span class="muted">#{{ block.course.id }}</span></h2>
-  <p class="muted">{{ block.students|length }} {{ t('teacher.students') }} · {{ t('teacher.share_hint') }}</p>
+  <h2>{{ block.course.name }}</h2>
+  <div class="join-code-box">
+    <span class="muted sm">{{ t('teacher.join_code') }}</span>
+    <code class="join-code">#{{ block.course.id }}</code>
+    <span class="muted sm">· {{ block.students|length }} {{ t('teacher.students') }}</span>
+  </div>
+  <p class="muted sm">{{ t('teacher.share_hint') }}</p>
 
   {% if block.rows %}
   <div class="table-wrap">

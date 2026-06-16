@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ t('plan.checkout_title') }} · {{ t('app.name') }}{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <h1>{{ t('plan.checkout_title') }}</h1>
+  <p class="muted">{{ t('plan.checkout_sub') }}</p>
+
+  <div class="checkout-summary">
+    <span>{{ plan_info['pro'].emoji }} {{ t('plan.pro') }}</span>
+    <strong>฿{{ plan_info['pro'].price }}/{{ t('plan.month') }}</strong>
+  </div>
+
+  <form method="post" action="/billing/upgrade">
+    <label>{{ t('checkout.card_name') }}<input type="text" value="DEMO USER" /></label>
+    <label>{{ t('checkout.card_number') }}<input type="text" value="4242 4242 4242 4242" inputmode="numeric" /></label>
+    <div class="grid-2">
+      <label>{{ t('checkout.expiry') }}<input type="text" value="12/30" /></label>
+      <label>{{ t('checkout.cvc') }}<input type="text" value="123" /></label>
+    </div>
+    <button class="btn-primary block lg" type="submit">{{ t('checkout.pay') }} · ฿{{ plan_info['pro'].price }}</button>
+  </form>
+
+  <p class="demo-note muted sm">⚠️ {{ t('plan.demo_note') }}</p>
+  <p class="muted sm"><a href="/pricing">← {{ t('plan.back_pricing') }}</a></p>
+</div>
+{% endblock %}

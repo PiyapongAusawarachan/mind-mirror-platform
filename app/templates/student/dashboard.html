@@ -2,24 +2,99 @@
 {% block title %}{{ t('student.my_lessons') }} · {{ t('app.name') }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <h1>{{ t('student.my_lessons') }}</h1>
+  <h1>{{ t('student.home') }}</h1>
 </div>
 
-<form class="inline-form panel" method="post" action="/student/lessons">
-  <input type="text" name="title" placeholder="{{ t('student.new_lesson_ph') }}" required />
-  <button class="btn-primary" type="submit">{{ t('student.new_lesson') }}</button>
-</form>
+{% if notice %}
+<p class="notice {{ 'ok' if notice in ['joined','left'] else 'warn' }}">
+  {{ t('course.notice.' + notice) }}
+  {% if notice == 'limit' %}<a href="/pricing">{{ t('plan.upgrade_cta') }}</a>{% endif %}
+</p>
+{% endif %}
 
-{% if contexts %}
-<div class="lesson-grid">
-  {% for ctx in contexts %}
-  <a class="lesson-card" href="/student/lessons/{{ ctx.id }}">
-    <h3>{{ ctx.title }}</h3>
-    <p class="muted">{{ ctx.materials|length }} {{ t('student.materials') }} · {{ ctx.explanations|length }} {{ t('student.explanations') }}</p>
-  </a>
-  {% endfor %}
-</div>
+<section class="panel">
+  <div class="row-between">
+    <h2>{{ t('course.my_courses') }}</h2>
+    <span class="muted sm">
+      {% if course_limit is none %}{{ t('plan.unlimited') }}{% else %}{{ courses|length }}/{{ course_limit }}{% endif %}
+    </span>
+  </div>
+
+  {% if courses %}
+  <div class="course-grid">
+    {% for c in courses %}
+    <div class="course-card">
+      <div class="course-code">#{{ c.id }}</div>
+      <h3>{{ c.name }}</h3>
+      <p class="muted sm">{{ t('course.teacher') }}: {{ c.teacher.name }}</p>
+      <form method="post" action="/student/courses/{{ c.id }}/leave" onsubmit="return confirm('{{ t('course.leave_confirm') }}')">
+        <button class="btn-ghost sm" type="submit">{{ t('course.leave') }}</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">{{ t('course.none_yet') }}</p>
+  {% endif %}
+
+  {% if can_join %}
+  <form class="inline-form join-form" method="post" action="/student/courses/join">
+    <input type="text" name="code" placeholder="{{ t('course.join_ph') }}" required />
+    <button class="btn-primary" type="submit">{{ t('course.join') }}</button>
+  </form>
+  {% else %}
+  <div class="locked-row">
+    <span>🔒 {{ t('course.limit_reached') }}</span>
+    <a class="btn-primary sm" href="/pricing">{{ t('plan.upgrade_cta') }}</a>
+  </div>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>{{ t('student.my_lessons') }}</h2>
+  <form class="inline-form" method="post" action="/student/lessons">
+    <input type="text" name="title" placeholder="{{ t('student.new_lesson_ph') }}" required />
+    {% if courses %}
+    <select name="course_id" class="course-select">
+      <option value="">{{ t('course.personal') }}</option>
+      {% for c in courses %}<option value="{{ c.id }}">{{ c.name }} (#{{ c.id }})</option>{% endfor %}
+    </select>
+    {% endif %}
+    <button class="btn-primary" type="submit">{{ t('student.new_lesson') }}</button>
+  </form>
+
+  {% if contexts %}
+  <div class="lesson-grid">
+    {% for ctx in contexts %}
+    <a class="lesson-card" href="/student/lessons/{{ ctx.id }}">
+      <h3>{{ ctx.title }}</h3>
+      {% if ctx.course %}<span class="tag">{{ ctx.course.name }}</span>{% endif %}
+      <p class="muted">{{ ctx.materials|length }} {{ t('student.materials') }} · {{ ctx.explanations|length }} {{ t('student.explanations') }}</p>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted empty">{{ t('student.no_lessons') }}</p>
+  {% endif %}
+</section>
+
+{% if is_pro %}
+<section class="panel pro-panel">
+  <div class="row-between">
+    <h2>{{ t('stats.title') }} <span class="plan-badge pro">🚀 PRO</span></h2>
+  </div>
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-num">{{ contexts|length }}</div><div class="muted sm">{{ t('stats.lessons') }}</div></div>
+    <div class="stat"><div class="stat-num">{{ courses|length }}</div><div class="muted sm">{{ t('stats.courses') }}</div></div>
+    <div class="stat"><div class="stat-num">{{ contexts|selectattr('analyses')|list|length }}</div><div class="muted sm">{{ t('stats.analyzed') }}</div></div>
+  </div>
+</section>
 {% else %}
-<p class="muted empty">{{ t('student.no_lessons') }}</p>
+<section class="panel locked-card">
+  <div class="locked-overlay">🔒</div>
+  <h2>{{ t('stats.title') }}</h2>
+  <p class="muted">{{ t('stats.locked') }}</p>
+  <a class="btn-primary" href="/pricing">{{ t('plan.upgrade_cta') }}</a>
+</section>
 {% endif %}
 {% endblock %}

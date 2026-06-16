@@ -174,6 +174,12 @@
   <script id="timeline-data" type="application/json">
   {"points": {{ timeline|tojson }}, "label": {{ t('timeline.mastery')|tojson }}}
   </script>
+  {% if timeline_locked and timeline_locked > 0 %}
+  <div class="locked-row">
+    <span>🔒 {{ t('timeline.locked', ) }} ({{ timeline_locked }})</span>
+    <a class="btn-primary sm" href="/pricing">{{ t('plan.upgrade_cta') }}</a>
+  </div>
+  {% endif %}
   {% else %}
   <p class="muted empty">{{ t('lesson.progress_empty') }}</p>
   {% endif %}

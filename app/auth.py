@@ -33,6 +33,7 @@ def verify_password(password: str, stored: str) -> bool:
 def login_user(request: Request, user: User) -> None:
     request.session["user_id"] = user.id
     request.session["theme"] = user.theme or "indigo"
+    request.session["plan"] = user.plan or "free"
 
 
 def logout_user(request: Request) -> None:

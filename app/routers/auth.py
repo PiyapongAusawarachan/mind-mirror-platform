@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app import auth, i18n, themes
 from app.database import get_db
-from app.models import Course, User
+from app.models import Course, Enrollment, User
 from app.templating import current_lang, render
 
 router = APIRouter()
@@ -81,18 +81,25 @@ def register(
     personality = themes.normalize_personality(personality)
     theme = themes.resolve_theme(personality, cartoon)
 
+    joined_course_id = int(course_id) if (role == "student" and course_id.isdigit()) else None
     user = User(
         name=name.strip(),
         email=email,
         password_hash=auth.hash_password(password),
         role=role,
-        course_id=int(course_id) if (role == "student" and course_id) else None,
+        course_id=joined_course_id,
         personality=personality,
         theme=theme,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Mirror the legacy single-course choice into the enrollment model.
+    if joined_course_id is not None and db.get(Course, joined_course_id) is not None:
+        db.add(Enrollment(student_id=user.id, course_id=joined_course_id))
+        db.commit()
+
     auth.login_user(request, user)
     return RedirectResponse("/", status_code=303)
 

@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
-from app import config, i18n, themes
+from app import config, i18n, plans, themes
 
 templates = Jinja2Templates(directory=str(config.ROOT / "app" / "templates"))
 templates.env.globals["LEVEL_COLORS"] = config.LEVEL_COLORS
@@ -28,6 +28,7 @@ def render(request: Request, template: str, context: dict[str, Any] | None = Non
 
     lang = current_lang(request)
     theme = themes.normalize_theme(request.session.get("theme"))
+    plan = plans.normalize_plan(request.session.get("plan"))
     ctx: dict[str, Any] = {
         "request": request,
         "lang": lang,
@@ -35,6 +36,8 @@ def render(request: Request, template: str, context: dict[str, Any] | None = Non
         "LEVEL_LABELS": i18n.level_labels(lang),
         "theme": theme,
         "theme_emoji": themes.theme_emoji(theme),
+        "plan": plan,
+        "is_pro": plans.is_pro(plan),
     }
     if context:
         ctx.update(context)

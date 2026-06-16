@@ -26,6 +26,9 @@
         {% endfor %}
       </div>
       {% if user %}
+        <a class="plan-badge {{ 'pro' if is_pro else 'free' }}" href="/pricing" title="{{ t('plan.manage') }}">
+          {{ '🚀 PRO' if is_pro else t('plan.free') }}
+        </a>
         <a class="btn-ghost sm" href="/settings">{{ t('nav.settings') }}</a>
         <span class="who">{{ user.name }} · {{ t('role.' + user.role) }}</span>
         <a class="btn-ghost" href="/logout">{{ t('nav.logout') }}</a>

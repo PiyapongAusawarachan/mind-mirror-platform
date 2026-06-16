@@ -31,6 +31,7 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
     _ensure_columns()
+    _backfill_enrollments()
 
 
 # Columns added after the first release. We add them in-place so existing
@@ -39,10 +40,12 @@ _ADDED_COLUMNS = {
     "learning_contexts": {
         "summary": "TEXT DEFAULT ''",
         "summary_points_json": "TEXT DEFAULT ''",
+        "course_id": "INTEGER",
     },
     "users": {
         "personality": "VARCHAR(20) DEFAULT 'logical'",
         "theme": "VARCHAR(20) DEFAULT 'indigo'",
+        "plan": "VARCHAR(20) DEFAULT 'free'",
     },
 }
 
@@ -60,3 +63,36 @@ def _ensure_columns() -> None:
             for name, ddl in columns.items():
                 if name not in present:
                     conn.execute(text(f'ALTER TABLE {table} ADD COLUMN {name} {ddl}'))
+
+
+def _backfill_enrollments() -> None:
+    """Migrate legacy single-course students to the enrollments table.
+
+    Earlier versions stored one course per student in ``users.course_id``. Create
+    matching enrollment rows (and link their lessons to that course) so existing
+    accounts keep working with the new multi-course model.
+    """
+
+    from app.models import Enrollment, LearningContext, User
+
+    session = SessionLocal()
+    try:
+        legacy = session.query(User).filter(User.course_id.isnot(None)).all()
+        changed = False
+        for user in legacy:
+            exists = (
+                session.query(Enrollment)
+                .filter(Enrollment.student_id == user.id, Enrollment.course_id == user.course_id)
+                .first()
+            )
+            if exists is None:
+                session.add(Enrollment(student_id=user.id, course_id=user.course_id))
+                changed = True
+            for ctx in user.contexts:
+                if ctx.course_id is None:
+                    ctx.course_id = user.course_id
+                    changed = True
+        if changed:
+            session.commit()
+    finally:
+        session.close()

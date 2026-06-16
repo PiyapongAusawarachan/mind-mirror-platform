@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from app import analytics, config
+from app import analytics, config, plans
 from app.ai import analyze, assess, ingest, summarize
 from app.auth import require_student
 from app.database import get_db
@@ -19,6 +19,8 @@ from app.models import (
     Analysis,
     Answer,
     Assessment,
+    Course,
+    Enrollment,
     Explanation,
     LearningContext,
     Material,
@@ -57,16 +59,90 @@ def dashboard(request: Request, student: User = Depends(require_student), db: Se
         .order_by(LearningContext.created_at.desc())
         .all()
     )
-    return render(request, "student/dashboard.html", {"user": student, "contexts": contexts})
+    courses = student.enrolled_courses
+    course_limit = plans.limit(student.plan, "max_courses_student")
+    can_join = plans.can_add(student.plan, "max_courses_student", len(courses))
+    return render(
+        request,
+        "student/dashboard.html",
+        {
+            "user": student,
+            "contexts": contexts,
+            "courses": courses,
+            "course_limit": course_limit,
+            "can_join": can_join,
+            "notice": request.query_params.get("notice"),
+        },
+    )
+
+
+@router.post("/courses/join")
+def join_course(
+    code: str = Form(...),
+    student: User = Depends(require_student),
+    db: Session = Depends(get_db),
+):
+    code = code.strip().lstrip("#").strip()
+    if not code.isdigit():
+        return RedirectResponse("/student?notice=not_found", status_code=303)
+
+    course = db.get(Course, int(code))
+    if course is None:
+        return RedirectResponse("/student?notice=not_found", status_code=303)
+
+    already = (
+        db.query(Enrollment)
+        .filter(Enrollment.student_id == student.id, Enrollment.course_id == course.id)
+        .first()
+    )
+    if already:
+        return RedirectResponse("/student?notice=already", status_code=303)
+
+    current = len(student.enrollments)
+    if not plans.can_add(student.plan, "max_courses_student", current):
+        return RedirectResponse("/student?notice=limit", status_code=303)
+
+    db.add(Enrollment(student_id=student.id, course_id=course.id))
+    db.commit()
+    return RedirectResponse("/student?notice=joined", status_code=303)
+
+
+@router.post("/courses/{course_id}/leave")
+def leave_course(
+    course_id: int,
+    student: User = Depends(require_student),
+    db: Session = Depends(get_db),
+):
+    enrollment = (
+        db.query(Enrollment)
+        .filter(Enrollment.student_id == student.id, Enrollment.course_id == course_id)
+        .first()
+    )
+    if enrollment:
+        db.delete(enrollment)
+        db.commit()
+    return RedirectResponse("/student?notice=left", status_code=303)
 
 
 @router.post("/lessons")
 def create_lesson(
     title: str = Form(...),
+    course_id: str = Form(""),
     student: User = Depends(require_student),
     db: Session = Depends(get_db),
 ):
-    ctx = LearningContext(student_id=student.id, title=title.strip() or "Untitled lesson")
+    linked_course_id: int | None = None
+    if course_id.strip().isdigit():
+        cid = int(course_id)
+        enrolled = any(e.course_id == cid for e in student.enrollments)
+        if enrolled:
+            linked_course_id = cid
+
+    ctx = LearningContext(
+        student_id=student.id,
+        title=title.strip() or "Untitled lesson",
+        course_id=linked_course_id,
+    )
     db.add(ctx)
     db.commit()
     db.refresh(ctx)
@@ -109,8 +185,11 @@ def lesson_step(
         step = "material"
     ctx = _get_owned_context(db, context_id, student)
     analysis = analytics.latest_analysis(ctx)
-    timeline = analytics.timeline(ctx)
-    done = _step_status(ctx, analysis, timeline)
+    full_timeline = analytics.timeline(ctx)
+    cap = plans.limit(student.plan, "timeline_points")
+    timeline = full_timeline[-cap:] if cap is not None else full_timeline
+    timeline_locked = len(full_timeline) - len(timeline)
+    done = _step_status(ctx, analysis, full_timeline)
 
     index = WIZARD_STEPS.index(step)
     base = f"/student/lessons/{ctx.id}/step"
@@ -134,6 +213,7 @@ def lesson_step(
             "steps": steps,
             "prev_url": prev_url,
             "next_url": next_url,
+            "timeline_locked": timeline_locked,
         },
     )
 
